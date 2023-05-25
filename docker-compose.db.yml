@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  keeper_db:
+    image: mysql:8.0.32
+    container_name: keeper_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_2023
+      MYSQL_USER: db_user
+      MYSQL_PASSWORD: Keeper_2023
+      MYSQL_DATABASE: keeper
+    ports:
+      - 3306:3306
+    volumes:
+      - keeper_db_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+volumes:
+  keeper_db_data:
+    name: keeper_db_data
