@@ -2,11 +2,8 @@ package middlewares
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"appstack.xyz/keeper_rest_api/models"
 	"github.com/gin-gonic/gin"
@@ -33,12 +30,15 @@ func AuthTokenMiddleware() gin.HandlerFunc {
 
 func TokenValidateMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		token := strings.Split(header.Authorization, "Bearer ")[1]
-		fmt.Println(token)
 
 		baseURL := os.Getenv("AUTH_SERVER")
 
 		req, err := http.NewRequest("GET", baseURL+"/authentication/verify", nil)
+
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			return
+		}
 
 		req.Header.Add("Authorization", header.Authorization)
 
@@ -46,17 +46,27 @@ func TokenValidateMiddleware() gin.HandlerFunc {
 		resp, err := client.Do(req)
 
 		if err != nil {
-			log.Fatal("ooopsss an error occurred, please try again")
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			return
 		}
 
-		println(resp.StatusCode)
+		if resp.StatusCode == 401 {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Token"})
+			return
+		}
+
+		if resp.StatusCode == 500 {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			return
+		}
 
 		defer resp.Body.Close()
 
 		var user *models.UserEntity
 
 		if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-			log.Panicln("Request Error..Error reading body to json")
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			return
 		}
 
 		ctx.Set("user", user)

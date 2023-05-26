@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"appstack.xyz/keeper_rest_api/exceptions"
 	"appstack.xyz/keeper_rest_api/lib"
 	"appstack.xyz/keeper_rest_api/models"
 	"appstack.xyz/keeper_rest_api/services"
@@ -94,5 +95,112 @@ func (controller *CredentialController) FetchCredentialsAction(ginContext *gin.C
 		}
 
 		ginContext.JSON(http.StatusCreated, creds)
+	}
+}
+
+func (controller *CredentialController) DeleteCredentailAction(ginContext *gin.Context) {
+	db, err := lib.ConnectToDB()
+	if err != nil {
+		controller.logger.Println(err)
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+		return
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		controller.logger.Println(err)
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+		return
+	}
+
+	credID := ginContext.Param("id")
+
+	if credID == "" {
+		ginContext.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Request.Credential ID missing"})
+		return
+	}
+
+	var data interface{}
+
+	data, _ = ginContext.Get("user")
+
+	if user, ok := data.(*models.UserEntity); ok {
+
+		service := services.NewCredentialService(db)
+
+		err := service.RemoveCredential(user, credID)
+		if err != nil {
+			controller.logger.Println(err)
+			if err == exceptions.ErrCredentialNotFound {
+				ginContext.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			if err == exceptions.ErrorServer {
+				ginContext.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			ginContext.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		ginContext.JSON(http.StatusNoContent, "")
+	}
+}
+
+func (controller *CredentialController) UpdateCredentailAction(ginContext *gin.Context) {
+	db, err := lib.ConnectToDB()
+	if err != nil {
+		controller.logger.Println(err)
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+		return
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		controller.logger.Println(err)
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+		return
+	}
+
+	credID := ginContext.Param("id")
+
+	if credID == "" {
+		ginContext.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Request.Credential ID missing"})
+		return
+	}
+
+	var credentialRequest models.CredentialRequestDTO
+	if err := ginContext.ShouldBindJSON(&credentialRequest); err != nil {
+		controller.logger.Println(err)
+		ginContext.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input!"})
+		return
+	}
+
+	var data interface{}
+
+	data, _ = ginContext.Get("user")
+
+	if user, ok := data.(*models.UserEntity); ok {
+
+		service := services.NewCredentialService(db)
+
+		updatedCred, err := service.ReformCredential(&credentialRequest, user, credID)
+		if err != nil {
+			controller.logger.Println(err)
+			if err == exceptions.ErrCredentialNotFound {
+				ginContext.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			if err == exceptions.ErrorServer {
+				ginContext.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			ginContext.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		ginContext.JSON(http.StatusOK, updatedCred)
 	}
 }

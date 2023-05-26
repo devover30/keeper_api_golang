@@ -122,3 +122,140 @@ func (service *CredentialService) AcquireCredentials(userReq *models.UserEntity)
 	return credentials, nil
 
 }
+
+func (service *CredentialService) RemoveCredential(userReq *models.UserEntity, credID string) error {
+
+	userService := NewUserService(service.MysqlDB)
+
+	user, err := userService.FetchByID(userReq.Id)
+
+	if err != nil {
+		log.Println("acquire user: ", err.Error())
+		return exceptions.ErrorServer
+	}
+
+	credential := &models.CredentialEntity{}
+
+	const getQuery = `SELECT id,platform_name,username,password,created_at,modified_at 
+	FROM credentials_tbl 
+	WHERE user_cl = ? AND id = ?`
+
+	tx, err := service.MysqlDB.Begin()
+
+	stmt, err := tx.Prepare(getQuery)
+
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	row := stmt.QueryRow(user.Id, credID)
+
+	err = row.Scan(&credential.Id, &credential.PlatformName, &credential.UserName,
+		&credential.Password, &credential.CreatedAt,
+		&credential.ModifiedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return exceptions.ErrCredentialNotFound
+		}
+
+	}
+
+	const query = `DELETE FROM credentials_tbl WHERE user_cl = ? AND id = ?`
+
+	res, err := service.MysqlDB.Exec(query, user.Id, credential.Id)
+
+	if err != nil {
+		return exceptions.ErrorServer
+	}
+
+	count, err := res.RowsAffected()
+	if err == nil {
+		println("delete service: count ", count)
+		/* check count and return true/false */
+	}
+
+	return nil
+}
+
+func (service *CredentialService) ReformCredential(cred *models.CredentialRequestDTO,
+	userReq *models.UserEntity,
+	credID string) (*models.CredentialEntity, error) {
+
+	userService := NewUserService(service.MysqlDB)
+
+	user, err := userService.FetchByID(userReq.Id)
+
+	if err != nil {
+		log.Println("acquire user: ", err.Error())
+		return nil, exceptions.ErrorServer
+	}
+
+	credential := &models.CredentialEntity{}
+
+	const getQuery = `SELECT id,platform_name,username,password,created_at,modified_at 
+	FROM credentials_tbl 
+	WHERE user_cl = ? AND id = ?`
+
+	tx, err := service.MysqlDB.Begin()
+	if err != nil {
+		return nil, exceptions.ErrorServer
+	}
+
+	stmt, err := tx.Prepare(getQuery)
+
+	if err != nil {
+		return nil, exceptions.ErrorServer
+	}
+	defer stmt.Close()
+
+	row := stmt.QueryRow(user.Id, credID)
+
+	err = row.Scan(&credential.Id, &credential.PlatformName, &credential.UserName,
+		&credential.Password, &credential.CreatedAt,
+		&credential.ModifiedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, exceptions.ErrCredentialNotFound
+		}
+
+	}
+
+	current_time := time.Now().Local()
+	modified_at := current_time.Format("2006-01-02")
+	credential.PlatformName = cred.PlatformName
+	credential.UserName = cred.UserName
+	credential.Password = cred.Password
+	credential.ModifiedAt = modified_at
+
+	const query = `UPDATE credentials_tbl SET platform_name = ?,
+	username = ?, password = ?, modified_at = ?
+	WHERE id = ? AND user_cl = ?`
+
+	stmt, err = tx.Prepare(query)
+
+	if err != nil {
+		return nil, exceptions.ErrorServer
+	}
+
+	defer tx.Rollback()
+
+	_, err = stmt.Exec(
+		credential.PlatformName,
+		credential.UserName,
+		credential.Password,
+		credential.ModifiedAt,
+		credential.Id,
+		user.Id,
+	)
+
+	if err != nil {
+		return nil, exceptions.ErrorServer
+	}
+
+	tx.Commit()
+	return credential, nil
+
+}

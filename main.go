@@ -34,17 +34,12 @@ func main() {
 	v1Route := router.Group("/api/v1", middlewares.AuthTokenMiddleware(), middlewares.TokenValidateMiddleware())
 
 	credntialController := controllers.NewCredentialController(logger, ctx)
-	//memberController := controllers.NewMemberController(logger, ctx)
-	//authController := controllers.NewAuthController(logger, ctx)
-	////router.GET("/members/:mobile", memberController.GetByMobileAction)
+
 	{
 		v1Route.POST("/credentials", credntialController.CreateCredentialAction)
 		v1Route.GET("/credentials", credntialController.FetchCredentialsAction)
-		// v1Route.POST("/members/verify", memberController.VerifyAction)
-		// v1Route.POST("/authentication", authController.LoginMemberAction)
-		// v1Route.POST("/authentication/verify", authController.VerifyMemberAction)
-		// v1Route.GET("/authentication/verify", authController.VerifyTokenAction)
-		// v1Route.POST("/authentication/refresh", authController.RefreshTokenAction)
+		v1Route.DELETE("/credentials/:id", credntialController.DeleteCredentailAction)
+		v1Route.PUT("/credentials/:id", credntialController.UpdateCredentailAction)
 	}
 	router.Run()
 }
