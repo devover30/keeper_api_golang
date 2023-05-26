@@ -36,7 +36,7 @@ func TokenValidateMiddleware() gin.HandlerFunc {
 		req, err := http.NewRequest("GET", baseURL+"/authentication/verify", nil)
 
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
 			return
 		}
 
@@ -46,17 +46,18 @@ func TokenValidateMiddleware() gin.HandlerFunc {
 		resp, err := client.Do(req)
 
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
 			return
 		}
 
+		println(resp.StatusCode)
 		if resp.StatusCode == 401 {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Token"})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Token"})
 			return
 		}
 
 		if resp.StatusCode == 500 {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
 			return
 		}
 
@@ -65,7 +66,7 @@ func TokenValidateMiddleware() gin.HandlerFunc {
 		var user *models.UserEntity
 
 		if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
 			return
 		}
 

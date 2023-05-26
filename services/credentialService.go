@@ -90,7 +90,14 @@ func (service *CredentialService) AcquireCredentials(userReq *models.UserEntity)
 
 	if err != nil {
 		log.Println("acquire user: ", err.Error())
-		return nil, err
+		if err != exceptions.ErrUserNotFound {
+			return nil, err
+		}
+		user, err = userService.InsertUser(userReq)
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	const query = `SELECT id,platform_name,username,password,created_at,modified_at 
@@ -103,7 +110,7 @@ func (service *CredentialService) AcquireCredentials(userReq *models.UserEntity)
 	}
 	defer rows.Close()
 
-	var credentials []models.CredentialEntity
+	var credentials []models.CredentialEntity = []models.CredentialEntity{}
 
 	for rows.Next() {
 		var credential models.CredentialEntity

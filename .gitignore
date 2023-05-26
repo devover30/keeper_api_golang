@@ -19,3 +19,4 @@ go.work
 todo.md
 *.tar
 .env
+keeper_app.tar
