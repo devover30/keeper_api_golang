@@ -94,7 +94,7 @@ func (controller *CredentialController) FetchCredentialsAction(ginContext *gin.C
 			return
 		}
 
-		ginContext.JSON(http.StatusCreated, creds)
+		ginContext.JSON(http.StatusOK, creds)
 	}
 }
 
