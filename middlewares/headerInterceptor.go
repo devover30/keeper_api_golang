@@ -33,7 +33,7 @@ func TokenValidateMiddleware() gin.HandlerFunc {
 
 		baseURL := os.Getenv("AUTH_SERVER")
 
-		req, err := http.NewRequest("GET", baseURL+"/authentication/verify", nil)
+		req, err := http.NewRequest("GET", baseURL+"/user", nil)
 
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "The server encountered an internal error while processing this request."})
