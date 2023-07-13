@@ -5,4 +5,4 @@ run-db:
 stop-db:
 	sudo docker compose -f docker-compose.db.yml down
 build-tar:
-	docker save -o keeper_app.tar keeper_app
+	sudo docker save -o keeper_app.tar keeper_app
