@@ -19,7 +19,7 @@ func AuthTokenMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		if err := c.ShouldBindHeader(header); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid Request.Authorization Header not present."})
+			c.AbortWithStatusJSON(400, gin.H{"error": "Invalid Request.Authorization Header not present."})
 			return
 		}
 
